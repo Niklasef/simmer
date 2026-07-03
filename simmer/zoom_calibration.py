@@ -3,7 +3,7 @@ Zoom calibration for The Sims 2.
 
 Triggered by pressing 'u' three times in quick succession.
 Zooms all the way out (6x 'x'), then zooms in to the calibration position (3x 'z').
-Then moves to the calibration position: hold W for 30s, 40x S, 19x D.
+Then moves to the calibration position: hold W for 30s, hold S for 8s, hold D for 8s.
 """
 
 import time
@@ -14,11 +14,10 @@ _keyboard = Controller()
 ZOOM_OUT_PRESSES = 6
 ZOOM_IN_PRESSES = 3
 ZOOM_PRESS_DELAY = 0.1   # seconds between zoom key presses
-MOVE_PRESS_DELAY = 0.5   # seconds between movement key presses
 
 W_HOLD_SECONDS = 30
-S_PRESSES = 40
-D_PRESSES = 19
+S_HOLD_SECONDS = 6
+D_HOLD_SECONDS = 3.5
 
 
 def run() -> None:
@@ -46,18 +45,16 @@ def run() -> None:
 
     time.sleep(0.2)
 
-    print(f"[zoom calibration] pressing S {S_PRESSES}x...")
-    for _ in range(S_PRESSES):
-        _keyboard.press('s')
-        _keyboard.release('s')
-        time.sleep(MOVE_PRESS_DELAY)
+    print(f"[zoom calibration] holding S for {S_HOLD_SECONDS}s...")
+    _keyboard.press('s')
+    time.sleep(S_HOLD_SECONDS)
+    _keyboard.release('s')
 
     time.sleep(0.2)
 
-    print(f"[zoom calibration] pressing D {D_PRESSES}x...")
-    for _ in range(D_PRESSES):
-        _keyboard.press('d')
-        _keyboard.release('d')
-        time.sleep(MOVE_PRESS_DELAY)
+    print(f"[zoom calibration] holding D for {D_HOLD_SECONDS}s...")
+    _keyboard.press('d')
+    time.sleep(D_HOLD_SECONDS)
+    _keyboard.release('d')
 
     print("[zoom calibration] done.")
