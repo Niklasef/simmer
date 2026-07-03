@@ -1,9 +1,9 @@
 """
-Zoom calibration for The Sims 2.
+Camera homing for The Sims 2.
 
 Triggered by pressing 'u' three times in quick succession.
-Zooms all the way out (6x 'x'), then zooms in to the calibration position (3x 'z').
-Then moves to the calibration position: hold W for 30s, hold S for 8s, hold D for 8s.
+Homes the camera to a stable reference view of the demo Sims house environment
+by resetting zoom and panning to a known position.
 """
 
 import time
