@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simmer"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["pynput"]
+
+[project.scripts]
+simmer = "simmer.cli:main"
