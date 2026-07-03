@@ -2,31 +2,33 @@
 Zoom calibration for The Sims 2.
 
 Triggered by pressing 'u' three times in quick succession.
-Sends a short left/right arrow key sequence to test camera zoom response.
+Zooms all the way out (6x 'x'), then zooms in to the calibration position (3x 'z').
 """
 
 import time
-from pynput.keyboard import Key, Controller
+from pynput.keyboard import Controller
 
 _keyboard = Controller()
 
-ARROW_PRESSES = 3
+ZOOM_OUT_PRESSES = 6
+ZOOM_IN_PRESSES = 3
 PRESS_DELAY = 0.1  # seconds between each key press
 
 
 def run() -> None:
-    """Send left/right arrow key presses to the active window."""
-    print("[zoom calibration] sending arrow keys...")
-    for _ in range(ARROW_PRESSES):
-        _keyboard.press(Key.left)
-        _keyboard.release(Key.left)
+    """Send zoom out then zoom in key presses to the active window."""
+    print("[zoom calibration] zooming out...")
+    for _ in range(ZOOM_OUT_PRESSES):
+        _keyboard.press('x')
+        _keyboard.release('x')
         time.sleep(PRESS_DELAY)
 
     time.sleep(0.2)
 
-    for _ in range(ARROW_PRESSES):
-        _keyboard.press(Key.right)
-        _keyboard.release(Key.right)
+    print("[zoom calibration] zooming in...")
+    for _ in range(ZOOM_IN_PRESSES):
+        _keyboard.press('z')
+        _keyboard.release('z')
         time.sleep(PRESS_DELAY)
 
     print("[zoom calibration] done.")
