@@ -13,6 +13,9 @@ Controls:
     Ctrl+A                             → print all rectangles to stdout
     C                                  → clear all rectangles
     Q / Escape                         → quit
+    Scroll wheel                       → zoom in / out (centred on cursor)
+    + / -                              → zoom in / out
+    0                                  → reset zoom to fit
 
 Coordinates are always reported in image-space (origin = top-left of image).
 """
@@ -27,6 +30,10 @@ from PIL import Image, ImageTk
 HANDLE_RADIUS = 7       # px radius of corner resize handles
 HANDLE_HIT    = 10      # px pick distance for handles
 MIN_SIZE      = 10      # minimum rectangle side length in image-px
+
+ZOOM_STEP     = 1.25    # multiply / divide scale by this per zoom step
+ZOOM_MIN      = 0.05
+ZOOM_MAX      = 16.0
 
 COLORS = [
     "#e74c3c", "#3498db", "#2ecc71", "#f39c12",
@@ -100,9 +107,9 @@ class AreaMapper:
         # State
         self.image_orig: Image.Image | None = None   # original PIL image
         self.image_path: str | None = None
-        self.scale      = 1.0   # canvas_coord = image_coord * scale
-        self.offset_x   = 0     # canvas origin in image coords (for pan, future)
-        self.offset_y   = 0
+        self.scale      = 1.0   # display_px = image_px * scale
+        self.offset_x   = 0.0   # image-space x of canvas (0,0) — always 0 (no free pan)
+        self.offset_y   = 0.0   # image-space y of canvas (0,0) — always 0 (no free pan)
 
         self.rects: list[Rect] = []
         self._undo_stack: list[list[Rect]] = []     # snapshots for undo
@@ -115,6 +122,7 @@ class AreaMapper:
         self._drag_start_img    = (0, 0)
         self._drag_rect_origin  = None              # rect coords at drag start
         self._rubber_band_start = None              # image coords of draw origin
+        self._rubber_band       = None              # (x1,y1,x2,y2) in image coords
 
         self._build_ui()
         self._bind_events()
@@ -133,6 +141,13 @@ class AreaMapper:
         tk.Button(toolbar, text="Clear All (C)", command=self._clear_all).pack(side=tk.LEFT, padx=4, pady=2)
         tk.Button(toolbar, text="Print Coords (Ctrl+A)", command=self._print_all).pack(side=tk.LEFT, padx=4, pady=2)
         tk.Button(toolbar, text="Undo (Ctrl+Z)",  command=self._undo).pack(side=tk.LEFT, padx=4, pady=2)
+
+        tk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=2)
+        tk.Button(toolbar, text="−", width=2, command=lambda: self._zoom_by(1/ZOOM_STEP)).pack(side=tk.LEFT, padx=2, pady=2)
+        tk.Button(toolbar, text="+", width=2, command=lambda: self._zoom_by(ZOOM_STEP)).pack(side=tk.LEFT, padx=2, pady=2)
+        tk.Button(toolbar, text="Fit (0)", command=self._fit_image).pack(side=tk.LEFT, padx=4, pady=2)
+        self.zoom_label = tk.Label(toolbar, text="100%", width=6, anchor=tk.W)
+        self.zoom_label.pack(side=tk.LEFT, padx=4, pady=2)
 
         # Canvas area with scrollbars
         frame = tk.Frame(self.root)
@@ -202,6 +217,17 @@ class AreaMapper:
         self.root.bind("<q>",         lambda e: self.root.quit())
         self.root.bind("<Q>",         lambda e: self.root.quit())
 
+        # Zoom keys
+        self.root.bind("<plus>",      lambda e: self._zoom_by(ZOOM_STEP))
+        self.root.bind("<equal>",     lambda e: self._zoom_by(ZOOM_STEP))   # unshifted +
+        self.root.bind("<minus>",     lambda e: self._zoom_by(1/ZOOM_STEP))
+        self.root.bind("<0>",         lambda e: self._fit_image())
+
+        # Mouse-wheel zoom (centred on cursor)
+        self.canvas.bind("<MouseWheel>",        self._on_mousewheel)        # Windows/macOS
+        self.canvas.bind("<Button-4>",          self._on_mousewheel)        # Linux scroll up
+        self.canvas.bind("<Button-5>",          self._on_mousewheel)        # Linux scroll down
+
     # ── Image loading ────────────────────────────────────────────────────────
 
     def _open_image(self):
@@ -236,9 +262,19 @@ class AreaMapper:
         iw, ih = self.image_orig.size
         scale = min(cw / iw, ch / ih, 1.0)   # never upscale beyond 1:1
         self.scale = scale
+        self._render_image()
+        self.status_var.set(
+            f"Loaded: {self.image_path}  |  {iw}×{ih} px  |  Scale: {scale:.2f}x  |  "
+            f"Scroll to zoom   Draw: click+drag   Move: drag rect   Resize: drag corner   Delete: right-click"
+        )
 
-        display_w = int(iw * scale)
-        display_h = int(ih * scale)
+    def _render_image(self):
+        """Re-render the PIL image at the current scale and refresh the canvas."""
+        if self.image_orig is None:
+            return
+        iw, ih = self.image_orig.size
+        display_w = max(1, int(iw * self.scale))
+        display_h = max(1, int(ih * self.scale))
 
         resized = self.image_orig.resize((display_w, display_h), Image.LANCZOS)
         self._tk_image = ImageTk.PhotoImage(resized)
@@ -247,10 +283,58 @@ class AreaMapper:
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self._tk_image, tags="image")
         self.canvas.configure(scrollregion=(0, 0, display_w, display_h))
         self._redraw()
-        self.status_var.set(
-            f"Loaded: {self.image_path}  |  {iw}×{ih} px  |  Scale: {scale:.2f}x  |  "
-            f"Draw: click+drag   Move: drag rect   Resize: drag corner   Delete: right-click"
-        )
+        if hasattr(self, "zoom_label"):
+            self.zoom_label.config(text=f"{int(self.scale * 100)}%")
+
+    # ── Zoom ─────────────────────────────────────────────────────────────────
+
+    def _zoom_by(self, factor: float, canvas_cx: float | None = None,
+                 canvas_cy: float | None = None):
+        """Multiply the current scale by *factor*, keeping the given canvas
+        point fixed in image-space (defaults to canvas centre)."""
+        if self.image_orig is None:
+            return
+
+        new_scale = max(ZOOM_MIN, min(ZOOM_MAX, self.scale * factor))
+        if new_scale == self.scale:
+            return
+
+        # If no focus point given, use visible centre of the canvas
+        if canvas_cx is None or canvas_cy is None:
+            canvas_cx = self.canvas.canvasx(self.canvas.winfo_width()  / 2)
+            canvas_cy = self.canvas.canvasy(self.canvas.winfo_height() / 2)
+
+        # Image-space point under the cursor must stay fixed
+        img_cx = canvas_cx / self.scale
+        img_cy = canvas_cy / self.scale
+
+        self.scale = new_scale
+        self._render_image()
+
+        # Scroll so that img_cx/img_cy lands back under canvas_cx/cy
+        new_canvas_x = img_cx * self.scale
+        new_canvas_y = img_cy * self.scale
+        iw, ih = self.image_orig.size
+        total_w = iw * self.scale
+        total_h = ih * self.scale
+        self.canvas.xview_moveto((new_canvas_x - canvas_cx + self.canvas.canvasx(0)) / total_w)
+        self.canvas.yview_moveto((new_canvas_y - canvas_cy + self.canvas.canvasy(0)) / total_h)
+
+    def _on_mousewheel(self, event):
+        if self.image_orig is None:
+            return
+        # Determine scroll direction
+        if event.num == 4:          # Linux scroll up
+            delta = 1
+        elif event.num == 5:        # Linux scroll down
+            delta = -1
+        else:                       # Windows / macOS
+            delta = 1 if event.delta > 0 else -1
+
+        factor = ZOOM_STEP if delta > 0 else 1 / ZOOM_STEP
+        cx = self.canvas.canvasx(event.x)
+        cy = self.canvas.canvasy(event.y)
+        self._zoom_by(factor, cx, cy)
 
     # ── Coordinate helpers ───────────────────────────────────────────────────
 
@@ -445,7 +529,7 @@ class AreaMapper:
             self._draw_rect(r, is_active)
 
         # Rubber-band preview
-        if self._drag_mode == "draw" and hasattr(self, "_rubber_band") and self._rubber_band:
+        if self._drag_mode == "draw" and self._rubber_band:
             x1, y1, x2, y2 = self._rubber_band
             cx1, cy1 = self._img_to_canvas(x1, y1)
             cx2, cy2 = self._img_to_canvas(x2, y2)
