@@ -6,7 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "simmer"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["pynput"]
+dependencies = ["pynput", "Pillow"]
 
 [project.scripts]
 simmer = "simmer.cli:main"
+area-mapper = "simmer.area_mapper:main"
