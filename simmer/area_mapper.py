@@ -258,9 +258,9 @@ class AreaMapper:
         s = self.scale
         return cx / s, cy / s
 
-    def _img_to_canvas(self, ix: float, iy: float) -> tuple[float, float]:
+    def _img_to_canvas(self, ix: float, iy: float) -> tuple[int, int]:
         s = self.scale
-        return ix * s, iy * s
+        return int(ix * s), int(iy * s)
 
     # ── Hit testing ──────────────────────────────────────────────────────────
 
