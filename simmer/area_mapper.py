@@ -460,9 +460,11 @@ class AreaMapper:
         cx2, cy2 = self._img_to_canvas(r.x2, r.y2)
 
         width = 2 if active else 1
+        # tkinter canvas has no alpha — use stipple for a transparent fill effect
         self.canvas.create_rectangle(cx1, cy1, cx2, cy2,
                                      outline=r.color,
-                                     fill=r.color + "22",   # semi-transparent fill
+                                     fill=r.color,
+                                     stipple="gray25",
                                      width=width, tags="rect")
 
         # Label in top-left corner
