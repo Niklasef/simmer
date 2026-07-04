@@ -142,7 +142,7 @@ class AreaMapper:
         tk.Button(toolbar, text="Print Coords (Ctrl+A)", command=self._print_all).pack(side=tk.LEFT, padx=4, pady=2)
         tk.Button(toolbar, text="Undo (Ctrl+Z)",  command=self._undo).pack(side=tk.LEFT, padx=4, pady=2)
 
-        tk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=2)
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=2)
         tk.Button(toolbar, text="−", width=2, command=lambda: self._zoom_by(1/ZOOM_STEP)).pack(side=tk.LEFT, padx=2, pady=2)
         tk.Button(toolbar, text="+", width=2, command=lambda: self._zoom_by(ZOOM_STEP)).pack(side=tk.LEFT, padx=2, pady=2)
         tk.Button(toolbar, text="Fit (0)", command=self._fit_image).pack(side=tk.LEFT, padx=4, pady=2)
