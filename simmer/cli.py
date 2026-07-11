@@ -13,8 +13,7 @@ from collections import deque
 from pynput import keyboard
 from pynput.keyboard import Key
 
-from simmer import zoom_calibration
-from simmer import mouse_recorder
+from simmer import zoom_calibration, mouse_recorder, bot
 
 # Window of time (seconds) in which three presses must occur
 TRIPLE_KEY_WINDOW = 1.5
@@ -51,12 +50,14 @@ def main() -> None:
         "  m m m -> toggle mouse click recorder\n"
         "  Ctrl+C -> quit"
     )
+    bot.start()
     with keyboard.Listener(on_press=_on_press) as listener:
         try:
             listener.join()
         except KeyboardInterrupt:
             if mouse_recorder.is_running():
                 mouse_recorder.stop()
+            bot.stop()
             print("\nsimmer stopped.")
 
 
