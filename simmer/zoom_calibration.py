@@ -8,6 +8,7 @@ by resetting zoom and panning to a known position.
 
 import time
 from pynput.keyboard import Controller
+from simmer import bot
 
 _keyboard = Controller()
 
@@ -58,3 +59,4 @@ def run() -> None:
     _keyboard.release('d')
 
     print("[zoom calibration] done.")
+    bot.start()

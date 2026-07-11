@@ -46,11 +46,10 @@ def _on_press(key: Key) -> None:
 def main() -> None:
     print(
         "simmer running.\n"
-        "  u u u -> zoom calibration\n"
+        "  u u u -> zoom calibration (bot starts when complete)\n"
         "  m m m -> toggle mouse click recorder\n"
         "  Ctrl+C -> quit"
     )
-    bot.start()
     with keyboard.Listener(on_press=_on_press) as listener:
         try:
             listener.join()
