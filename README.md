@@ -26,14 +26,44 @@ comes later.
    the reference view so that the fixed mappings translate correctly to the
    current screen.
 
-4. **Rule-based bot** — uses the mapped areas to decide and execute actions
+4. **Mouse click recorder** — records left and right mouse click coordinates
+   while the game is running, printing each click to the terminal. Used to
+   capture action target coordinates for new mappings without leaving the game.
+
+5. **Rule-based bot** — uses the mapped areas to decide and execute actions
    (click, type, etc.). First version is simple rules; no ML yet.
 
 ## Tools
 
 | Command | Description |
 |---|---|
+| `simmer` | Run the CLI bot controller (global hotkeys, see below) |
 | `area-mapper [image]` | Map action/input areas on a reference image |
+
+## simmer CLI hotkeys
+
+Global hotkeys active while the game window is focused:
+
+| Hotkey | Action |
+|---|---|
+| `u` `u` `u` | Zoom calibration — homes the camera to the reference view |
+| `m` `m` `m` | Toggle mouse click recorder on/off |
+| `Ctrl+C` | Quit |
+
+All three keypresses must occur within 1.5 seconds to trigger the action.
+
+### Mouse click recorder
+
+When active, every left and right mouse click inside the game is printed to
+the terminal:
+
+```
+[mouse recorder] click L (834, 412)
+[mouse recorder] click R (291, 750)
+```
+
+Use this to capture coordinates for new area mappings without switching away
+from the game. Press `m` three times again to stop recording.
 
 ## Area Mapper controls
 
