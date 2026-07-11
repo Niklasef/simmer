@@ -33,6 +33,41 @@ comes later.
 5. **Rule-based bot** — uses the mapped areas to decide and execute actions
    (click, type, etc.). First version is simple rules; no ML yet.
 
+## Architecture
+
+```
+coords.py              — config: all hardcoded screen coords (AREAS, ACTIONS)
+simmer/
+  bar_reader.py        — screenshots a rect region, returns fill % (0.0–1.0)
+  action_runner.py     — executes a named click sequence from coords.ACTIONS
+  bot.py               — 1 fps rule loop: reads state → decides → acts
+  zoom_calibration.py  — homes the camera via timed key injection; starts bot
+  mouse_recorder.py    — dev tool: prints click coords to terminal
+  area_mapper.py       — dev tool: GUI for drawing regions on a screenshot
+  cli.py               — entry point: global hotkey listener
+```
+
+**Data flow at runtime:**
+
+```
+screen pixels
+  └─ bar_reader      reads a rect region → fill fraction
+       └─ bot        compares to threshold → decides action
+            └─ action_runner  sends mouse clicks from coords.ACTIONS
+```
+
+**Adding a new automation:**
+
+1. Use `m m m` to record click coordinates in-game.
+2. Add a region to `coords.AREAS` and/or a click sequence to `coords.ACTIONS`.
+3. Add a rule to the `bot.py` loop that reads the region and calls `action_runner.run(...)`.
+
+## Implemented automations
+
+| Automation | Trigger | Action | Post-action pause |
+|---|---|---|---|
+| Sleep | Energy bar < 50 % | 2-click sleep macro | 5 min (let Sim sleep) |
+
 ## Tools
 
 | Command | Description |
