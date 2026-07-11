@@ -12,8 +12,7 @@ treating the top-left corner pixel as the background reference colour.
 
 Usage
 -----
-    from simmer import bar_reader
-    import coords
+    from simmer import bar_reader, coords
 
     fill = bar_reader.read(coords.AREAS["energy_bar"])
     print(f"energy: {fill:.0%}")

@@ -13,7 +13,7 @@ Usage
 import time
 from pynput.mouse import Button, Controller as MouseController
 
-import coords
+from simmer import coords
 
 _mouse = MouseController()
 

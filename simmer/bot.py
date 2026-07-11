@@ -12,7 +12,7 @@ responsive. Start/stop it from cli.py via start() / stop().
 import threading
 import time
 
-import coords
+from simmer import coords
 from simmer import bar_reader, action_runner
 
 # --- tunables -----------------------------------------------------------
